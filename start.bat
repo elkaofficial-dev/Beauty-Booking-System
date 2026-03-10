@@ -61,8 +61,6 @@ echo ║   ✅ Готово к запуску!                ║
 echo ╚═══════════════════════════════════════╝
 echo.
 echo 📱 Telegram Bot: Запущен и слушает обновления
-echo 🌐 Admin Panel: http://localhost:5000
-echo 🗄️  Database: postgresql://localhost:5432/beauty_shop
 echo.
 echo 📖 Команды:
 echo   • Остановить:     docker-compose down
