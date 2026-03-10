@@ -1,0 +1,6 @@
+aiogram>=3.4.0
+python-dotenv
+asyncpg
+fastapi
+uvicorn
+jinja2
