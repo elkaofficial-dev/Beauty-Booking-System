@@ -34,7 +34,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    restart: unless-stopped
+    restart: on-failure
     networks:
       - beauty_network
 

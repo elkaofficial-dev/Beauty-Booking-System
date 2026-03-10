@@ -7,6 +7,10 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 router = Router()
@@ -91,14 +95,35 @@ async def get_date_msg(m: Message, state: FSMContext):
 
 async def main():
     global pool
-    pool = await asyncpg.create_pool(os.getenv('DATABASE_URL'))
+    
+    # Retry логика для подключения к БД
+    max_retries = 10
+    retry_delay = 3
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            logger.info(f"🔄 Попытка подключения к БД ({attempt}/{max_retries})...")
+            pool = await asyncpg.create_pool(os.getenv('DATABASE_URL'))
+            logger.info("✅ Успешно подключилась к БД!")
+            break
+        except Exception as e:
+            logger.warning(f"⚠️  Попытка {attempt} не удалась: {e}")
+            if attempt < max_retries:
+                logger.info(f"⏳ Ожидание {retry_delay} секунд перед повтором...")
+                await asyncio.sleep(retry_delay)
+            else:
+                logger.error("❌ Не удалось подключиться к БД после всех попыток!")
+                raise
+    
     async with pool.acquire() as conn:
         await conn.execute("CREATE TABLE IF NOT EXISTS records (date DATE PRIMARY KEY, srv TEXT)")
+        logger.info("✅ Таблица records готова")
         
     bot = Bot(token=os.getenv('BOT_TOKEN'), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
     dp.include_router(router)
     await bot.delete_webhook(drop_pending_updates=True)
+    logger.info("🤖 Бот запущен и слушает обновления...")
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
