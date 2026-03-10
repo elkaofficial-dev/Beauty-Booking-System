@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: beauty_shop_db
+    environment:
+      POSTGRES_USER: beauty_user
+      POSTGRES_PASSWORD: beauty_password
+      POSTGRES_DB: beauty_shop
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U beauty_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - beauty_network
+
+  # Telegram Bot
+  bot:
+    build:
+      context: .
+      dockerfile: dockerfile
+    container_name: beauty_shop_bot
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      DATABASE_URL: postgresql://beauty_user:beauty_password@postgres:5432/beauty_shop
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - beauty_network
+
+  # Admin Panel
+  admin:
+    build:
+      context: .
+      dockerfile: dockerfile.admin
+    container_name: beauty_shop_admin
+    environment:
+      DATABASE_URL: postgresql://beauty_user:beauty_password@postgres:5432/beauty_shop
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - beauty_network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  beauty_network:
+    driver: bridge
